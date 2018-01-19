@@ -25,11 +25,21 @@ namespace fc {
    namespace ip { class endpoint; }
 
    namespace ecc { class public_key; class private_key; }
+   template<typename Storage> class fixed_string;
+
    namespace raw {
+    template<typename T>
+    inline size_t pack_size(  const T& v );
+
+    template<typename Stream, typename Storage> inline void pack( Stream& s, const fc::fixed_string<Storage>& u );
+    template<typename Stream, typename Storage> inline void unpack( Stream& s, fc::fixed_string<Storage>& u );
+
     template<typename Stream, typename IntType, typename EnumType>
     inline void pack( Stream& s, const fc::enum_type<IntType,EnumType>& tp );
     template<typename Stream, typename IntType, typename EnumType>
     inline void unpack( Stream& s, fc::enum_type<IntType,EnumType>& tp );
+
+
 
     template<typename Stream, typename T> inline void pack( Stream& s, const std::set<T>& value );
     template<typename Stream, typename T> inline void unpack( Stream& s, std::set<T>& value );
@@ -51,8 +61,8 @@ namespace fc {
     template<typename Stream, typename K, typename V> inline void pack( Stream& s, const std::map<K,V>& value );
     template<typename Stream, typename K, typename V> inline void unpack( Stream& s, std::map<K,V>& value );
 
-    template<typename Stream, typename K, typename V> inline void pack( Stream& s, const flat_map<K,V>& value );
-    template<typename Stream, typename K, typename V> inline void unpack( Stream& s, flat_map<K,V>& value );
+    template<typename Stream, typename K, typename... V> inline void pack( Stream& s, const flat_map<K,V...>& value );
+    template<typename Stream, typename K, typename V, typename... A> inline void unpack( Stream& s, flat_map<K,V,A...>& value );
 
     template<typename Stream, typename K, typename V> inline void pack( Stream& s, const std::pair<K,V>& value );
     template<typename Stream, typename K, typename V> inline void unpack( Stream& s, std::pair<K,V>& value );
@@ -107,8 +117,8 @@ namespace fc {
     template<typename Stream> inline void pack( Stream& s, const bool& v );
     template<typename Stream> inline void unpack( Stream& s, bool& v );
 
-    template<typename T> inline std::vector<char> pack( const T& v );
-    template<typename T> inline T unpack( const std::vector<char>& s );
-    template<typename T> inline T unpack( const char* d, uint32_t s );
-    template<typename T> inline void unpack( const char* d, uint32_t s, T& v );
+    template<typename T> inline std::vector<char> pack_to_vector( const T& v );
+    template<typename T> inline T unpack_from_vector( const std::vector<char>& s );
+    template<typename T> inline T unpack_from_char_array( const char* d, uint32_t s );
+    template<typename T> inline void unpack_from_char_array( const char* d, uint32_t s, T& v );
 } }
