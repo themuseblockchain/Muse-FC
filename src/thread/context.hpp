@@ -81,13 +81,7 @@ namespace fc {
       cur_task(0),
       context_posted_num(0)
     {
-#if BOOST_VERSION >= 106100
-     //  std::cerr<< "HERE: "<< BOOST_VERSION <<"\n";
-     //my_context = new bc::execution_context<intptr_t>( [=]( bc::execution_context<intptr_t> sink, intptr_t self  ){ std::cerr<<"in ex\n"; sf(self);  std::cerr<<"exit ex\n"; return sink; } );
-     size_t stack_size = FC_CONTEXT_STACK_SIZE;
-     alloc.allocate(stack_ctx, stack_size);
-     my_context = bc::detail::make_fcontext( stack_ctx.sp, stack_ctx.size, sf );
-#elif BOOST_VERSION >= 105600
+#if BOOST_VERSION >= 105600
      size_t stack_size = FC_CONTEXT_STACK_SIZE;
      alloc.allocate(stack_ctx, stack_size);
      my_context = bc::make_fcontext( stack_ctx.sp, stack_ctx.size, sf);
@@ -245,10 +239,7 @@ namespace fc {
 
 
 
-#if BOOST_VERSION >= 106100
-    //bc::execution_context<intptr_t>*   my_context;
-    bc::detail::fcontext_t       my_context;
-#elif BOOST_VERSION >= 105300 && BOOST_VERSION < 105600
+#if BOOST_VERSION >= 105300 && BOOST_VERSION < 105600
     bc::fcontext_t*              my_context;
 #else
     bc::fcontext_t               my_context;
