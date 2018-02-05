@@ -29,13 +29,15 @@ namespace fc
   fc::string trim( const fc::string& );
   fc::string to_lower( const fc::string& );
   string trim_and_normalize_spaces( const string& s );
+
+  uint64_t parse_size( const string& s );
 }
 
 #else
 
 /**
- *  There is debate about whether doing this is 'standard conforming', but 
- *  it works everywhere and enables the purpose of this library which is to 
+ *  There is debate about whether doing this is 'standard conforming', but
+ *  it works everywhere and enables the purpose of this library which is to
  *  accelerate compiles while maintaining compatability.
  */
 namespace std {
@@ -131,7 +133,7 @@ namespace fc {
       friend string operator + ( const string&, char c );
 
       fc::string substr( size_t start, size_t len = fc::string::npos )const;
-    
+
     private:
        fc::fwd<std::string,32> my;
   };
