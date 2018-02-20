@@ -26,13 +26,6 @@ static void check_randomness( const char* buffer, size_t len ) {
 
 BOOST_AUTO_TEST_SUITE(fc_crypto)
 
-BOOST_AUTO_TEST_CASE(rand_test)
-{
-    char buffer[128];
-    fc::rand_bytes( buffer, sizeof(buffer) );
-    check_randomness( buffer, sizeof(buffer) );
-}
-
 BOOST_AUTO_TEST_CASE(pseudo_rand_test)
 {
     char buffer[10013];
