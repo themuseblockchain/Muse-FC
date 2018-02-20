@@ -1,4 +1,3 @@
-#define BOOST_TEST_MODULE BlindingTest
 #include <boost/test/unit_test.hpp>
 #include <fc/array.hpp>
 #include <fc/crypto/base58.hpp>

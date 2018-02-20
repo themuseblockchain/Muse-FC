@@ -235,7 +235,7 @@ namespace fc { namespace ecc {
         memcpy( buffer, key.begin(), key.size() );
         fc::sha256 double_hash = fc::sha256::hash( fc::sha256::hash( key.begin(), key.size() ));
         memcpy( buffer + key.size(), double_hash.data(), 4 );
-        return fc::to_base58( buffer, sizeof(buffer) );
+        return fc::to_base58( buffer, key.size() + 4 );
     }
 
     static void _parse_extended_data( unsigned char* buffer, fc::string base58 )
