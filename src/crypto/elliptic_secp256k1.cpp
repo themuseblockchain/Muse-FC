@@ -84,13 +84,15 @@ namespace fc { namespace ecc {
 
     public_key& public_key::operator=( const public_key& pk )
     {
-        my = pk.my;
+        if( &pk != this )
+            my = pk.my;
         return *this;
     }
 
     public_key& public_key::operator=( public_key&& pk )
     {
-        my = pk.my;
+        if( &pk != this )
+            my = std::move( pk.my );
         return *this;
     }
 
@@ -134,8 +136,7 @@ namespace fc { namespace ecc {
     public_key::public_key( const public_key_point_data& dat )
     {
         const char* front = &dat.data[0];
-        if( *front == 0 ){}
-        else
+        if( *front != 0 )
         {
             EC_KEY *key = EC_KEY_new_by_curve_name( NID_secp256k1 );
             key = o2i_ECPublicKey( &key, (const unsigned char**)&front, sizeof(dat) );
@@ -263,20 +264,6 @@ namespace fc { namespace ecc {
         *out.begin() = BN_is_bit_set( bn_y, 0 ) ? 3 : 2;
     }
 
-//    static void print(const unsigned char* data) {
-//        for (int i = 0; i < 32; i++) {
-//            printf("%02x", *data++);
-//        }
-//    }
-//
-//    static void print(private_key_secret key) {
-//        print((unsigned char*) key.data());
-//    }
-//
-//    static void print(public_key_data key) {
-//        print((unsigned char*) key.begin() + 1);
-//    }
-
     static void canonicalize( unsigned char *int256 )
     {
         fc::sha256 biggi( (char*) int256, 32 );
@@ -300,7 +287,6 @@ namespace fc { namespace ecc {
         invert( prod, prod );
         public_key_data P = p.serialize();
         FC_ASSERT( secp256k1_ec_pubkey_tweak_mul( detail::_get_context(), (unsigned char*) P.begin(), P.size(), (unsigned char*) prod.data() ) );
-//        printf("K: "); print(P); printf("\n");
         return public_key( P );
     }
 
@@ -340,7 +326,6 @@ namespace fc { namespace ecc {
         FC_ASSERT( secp256k1_ec_pubkey_tweak_mul( detail::_get_context(), (unsigned char*) accu.begin(), accu.size(), (unsigned char*) prod.data() ) );
         // accu == (c^-1 * a * P + Q + b*G) * (Kx * a)^-1
 
-//        printf("T: "); print(accu); printf("\n");
         return public_key( accu );
     }
 
@@ -367,12 +352,6 @@ namespace fc { namespace ecc {
         private_key_secret d = generate_d(i).get_secret();
         public_key_data p = bob.generate_p(i).serialize();
         public_key_data q = bob.generate_q(i).serialize();
-//        printf("a: "); print(a); printf("\n");
-//        printf("b: "); print(b); printf("\n");
-//        printf("c: "); print(c); printf("\n");
-//        printf("d: "); print(d); printf("\n");
-//        printf("P: "); print(p); printf("\n");
-//        printf("Q: "); print(q); printf("\n");
         return compute_t( a, b, c, d, p, q );
     }
 
@@ -382,8 +361,6 @@ namespace fc { namespace ecc {
         private_key_secret b = generate_b(i).get_secret();
         FC_ASSERT( secp256k1_ec_privkey_tweak_mul( detail::_get_context(), (unsigned char*) a.data(), (unsigned char*) hash.data() ) > 0 );
         FC_ASSERT( secp256k1_ec_privkey_tweak_add( detail::_get_context(), (unsigned char*) a.data(), (unsigned char*) b.data() ) > 0 );
-//        printf("hash: "); print(hash); printf("\n");
-//        printf("blinded: "); print(a); printf("\n");
         return a;
     }
 
@@ -391,7 +368,6 @@ namespace fc { namespace ecc {
     {
         private_key_secret p_inv = derive_normal_child( 2*i ).get_secret();
         invert( p_inv, p_inv );
-//        printf("p: "); print(p_inv); printf("\n");
         return p_inv;
     }
 
@@ -399,7 +375,6 @@ namespace fc { namespace ecc {
     {
         private_key_secret q = derive_normal_child( 2*i + 1 ).get_secret();
         FC_ASSERT( secp256k1_ec_privkey_tweak_mul( detail::_get_context(), (unsigned char*) q.data(), (unsigned char*) p.data() ) > 0 );
-//        printf("q: "); print(q); printf("\n");
         return q;
     }
 
@@ -409,7 +384,6 @@ namespace fc { namespace ecc {
         private_key_secret q = compute_q( i, p );
         FC_ASSERT( secp256k1_ec_privkey_tweak_mul( detail::_get_context(), (unsigned char*) p.data(), (unsigned char*) hash.data() ) > 0 );
         FC_ASSERT( secp256k1_ec_privkey_tweak_add( detail::_get_context(), (unsigned char*) p.data(), (unsigned char*) q.data() ) > 0 );
-//        printf("blind_sig: "); print(p); printf("\n");
         return p;
     }
 
@@ -434,22 +408,17 @@ namespace fc { namespace ecc {
         memcpy( result.begin() + 1, k.begin() + 1, 32 );
         memcpy( result.begin() + 33, c.data(), 32 );
         canonicalize( result.begin() + 33 );
-//        printf("unblinded: "); print(result.begin() + 33); printf("\n");
         for ( int i = 0; i < 4; i++ )
         {
             unsigned char pubkey[33];
             int pklen = 33;
             if ( secp256k1_ecdsa_recover_compact( detail::_get_context(), (unsigned char*) hash.data(),
                                                   (unsigned char*) result.begin() + 1,
-                                                  pubkey, &pklen, 1, i ) )
+                                                  pubkey, &pklen, 1, i )
+                    && !memcmp( t.begin(), pubkey, sizeof(pubkey) ) )
             {
-                if ( !memcmp( t.begin(), pubkey, sizeof(pubkey) ) )
-                {
-                    *result.begin() = 27 + 4 + i;
-                    return result;
-//                } else {
-//                    printf("Candidate: "); print( pubkey ); printf("\n");
-                }
+                *result.begin() = 27 + 4 + i;
+                return result;
             }
         }
         FC_ASSERT( 0, "Failed to unblind - use different i" );
