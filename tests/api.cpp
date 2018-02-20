@@ -33,9 +33,9 @@ using namespace fc;
 class some_calculator
 {
    public:
-      int32_t add( int32_t a, int32_t b ) { wlog("."); if( _cb ) _cb(a+b); return a+b; }
-      int32_t sub( int32_t a, int32_t b ) {  wlog(".");if( _cb ) _cb(a-b); return a-b; }
-      void    on_result( const std::function<void(int32_t)>& cb ) { wlog( "set callback" ); _cb = cb;  return ; }
+      int32_t add( int32_t a, int32_t b ) { if( _cb ) _cb(a+b); return a+b; }
+      int32_t sub( int32_t a, int32_t b ) { if( _cb ) _cb(a-b); return a-b; }
+      void    on_result( const std::function<void(int32_t)>& cb ) { _cb = cb; }
       void    on_result2(  const std::function<void(int32_t)>& cb, int test ){}
       std::function<void(int32_t)> _cb;
 };
@@ -44,7 +44,7 @@ class variant_calculator
    public:
       double add( fc::variant a, fc::variant b ) { return a.as_double()+b.as_double(); }
       double sub( fc::variant a, fc::variant b ) { return a.as_double()-b.as_double(); }
-      void    on_result( const std::function<void(int32_t)>& cb ) { wlog("set callback"); _cb = cb; return ; }
+      void    on_result( const std::function<void(int32_t)>& cb ) { _cb = cb; }
       void    on_result2(  const std::function<void(int32_t)>& cb, int test ){}
       std::function<void(int32_t)> _cb;
 };
@@ -55,6 +55,8 @@ using namespace fc::rpc;
 int main( int argc, char** argv )
 {
    try {
+      fc::logger::get(DEFAULT_LOGGER).set_log_level( fc::log_level::error );
+
       fc::api<calculator> calc_api( std::make_shared<some_calculator>() );
 
       fc::http::websocket_server server;
@@ -77,8 +79,7 @@ int main( int argc, char** argv )
             auto apic = std::make_shared<websocket_api_connection>(*con);
             auto remote_login_api = apic->get_remote_api<login_api>();
             auto remote_calc = remote_login_api->get_calc();
-            remote_calc->on_result( []( uint32_t r ) { elog( "callback result ${r}", ("r",r) ); } );
-            wdump((remote_calc->add( 4, 5 )));
+            FC_ASSERT( 9 == remote_calc->add( 4, 5 ) );
          } catch ( const fc::exception& e )
          {
             edump((e.to_detail_string()));
