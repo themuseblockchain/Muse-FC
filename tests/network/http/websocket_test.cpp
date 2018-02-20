@@ -12,9 +12,9 @@ BOOST_AUTO_TEST_CASE(websocket_test)
     fc::http::websocket_connection_ptr s_conn, c_conn;
     {
         fc::http::websocket_server server;
-        server.on_connection([&]( const fc::http::websocket_connection_ptr& c ){
+        server.on_connection([&s_conn]( const fc::http::websocket_connection_ptr& c ){
                 s_conn = c;
-                c->on_message_handler([&](const std::string& s){
+                c->on_message_handler([&c](const std::string& s){
                     c->send_message("echo: " + s);
                 });
             });
@@ -24,7 +24,7 @@ BOOST_AUTO_TEST_CASE(websocket_test)
 
         std::string echo;
         c_conn = client.connect( "ws://localhost:8090" );
-        c_conn->on_message_handler([&](const std::string& s){
+        c_conn->on_message_handler([&echo](const std::string& s){
                     echo = s;
                 });
         c_conn->send_message( "hello world" );
@@ -36,12 +36,7 @@ BOOST_AUTO_TEST_CASE(websocket_test)
 
         s_conn->close(0, "test");
         fc::usleep( fc::seconds(1) );
-        try {
-            c_conn->send_message( "again" );
-            BOOST_FAIL("expected assertion failure");
-        } catch (const fc::assert_exception& e) {
-            //std::cerr << e.to_string() << "\n";
-        }
+        BOOST_REQUIRE_THROW( c_conn->send_message( "again" ), fc::assert_exception );
 
         c_conn = client.connect( "ws://localhost:8090" );
         c_conn->on_message_handler([&](const std::string& s){
@@ -52,19 +47,9 @@ BOOST_AUTO_TEST_CASE(websocket_test)
         BOOST_CHECK_EQUAL("echo: hello world", echo);
     }
 
-    try {
-        c_conn->send_message( "again" );
-        BOOST_FAIL("expected assertion failure");
-    } catch (const fc::assert_exception& e) {
-        std::cerr << e.to_string() << "\n";
-    }
+    BOOST_REQUIRE_THROW( c_conn->send_message( "again" ), fc::assert_exception );
 
-    try {
-        c_conn = client.connect( "ws://localhost:8090" );
-        BOOST_FAIL("expected assertion failure");
-    } catch (const fc::assert_exception& e) {
-        std::cerr << e.to_string() << "\n";
-    }
+    BOOST_REQUIRE_THROW( c_conn = client.connect( "ws://localhost:8090" ), fc::exception );
 }
 
 BOOST_AUTO_TEST_SUITE_END()
