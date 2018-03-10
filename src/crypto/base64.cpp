@@ -1,5 +1,6 @@
 #include <fc/crypto/base64.hpp>
 #include <ctype.h>
+#include <locale>
 /* 
    base64.cpp and base64.h
 
@@ -27,6 +28,8 @@
 
 */
 
+static const std::locale& c_locale = std::locale::classic();
+
 namespace fc {
 
 inline const std::string& base64_chars()
@@ -38,8 +41,8 @@ inline const std::string& base64_chars()
     return m_base64_chars;
 }
 
-static inline bool is_base64(unsigned char c) {
-  return (isalnum(c) || (c == '+') || (c == '/'));
+static inline bool is_base64(char c) {
+  return (isalnum(c, c_locale) || (c == '+') || (c == '/'));
 }
 
 std::string base64_encode(unsigned char const* bytes_to_encode, unsigned int in_len);
