@@ -155,7 +155,7 @@ namespace fc
     *   and other information that is generally only useful for
     *   developers.
     */
-   string exception::to_detail_string( log_level ll  )const
+   string exception::to_detail_string( log_level ll )const
    {
       fc::stringstream ss;
       ss << variant(my->_code).as_string() <<" " << my->_name << ": " <<my->_what<<"\n";
@@ -180,7 +180,7 @@ namespace fc
       for( auto itr = my->_elog.begin(); itr != my->_elog.end(); ++itr )
       {
          if( itr->get_format().size() )
-            ss << fc::format_string( itr->get_format(), itr->get_data() );
+            ss << " " << fc::format_string( itr->get_format(), itr->get_data() );
       }
       return ss.str();
    }
