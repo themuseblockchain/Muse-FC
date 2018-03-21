@@ -98,6 +98,7 @@ else ( MSVC )
     set_property(TARGET secp256k1 PROPERTY IMPORTED_LOCATION ${binary_dir}/.libs/libsecp256k1${CMAKE_STATIC_LIBRARY_SUFFIX})
     set_property(TARGET secp256k1 PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${CMAKE_CURRENT_SOURCE_DIR}/vendor/secp256k1-zkp/include)
     add_dependencies(secp256k1 project_secp256k1)
+    install( FILES ${binary_dir}/.libs/libsecp256k1${CMAKE_STATIC_LIBRARY_SUFFIX} DESTINATION lib/cryptonomex )
 endif ( MSVC )
 # End configure secp256k1-zkp
 
@@ -231,12 +232,10 @@ set( fc_sources
      src/network/http/http_connection.cpp
      src/network/http/http_server.cpp
      src/network/http/websocket.cpp
-     src/network/ntp.cpp
      src/network/ip.cpp
      src/network/rate_limiting.cpp
      src/network/resolve.cpp
      src/network/url.cpp
-     src/network/gntp.cpp
      src/compress/smaz.cpp
      src/compress/zlib.cpp
      vendor/cyoencode-1.0.2/src/CyoDecode.c
