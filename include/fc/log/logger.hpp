@@ -156,14 +156,39 @@ namespace fc
 #define FC_FORMAT_ARG_PARAMS( ... )\
     BOOST_PP_SEQ_FOR_EACH( FC_FORMAT_ARGS, v, __VA_ARGS__ )
 
-#define ddump( SEQ ) \
-    dlog( FC_FORMAT(SEQ), FC_FORMAT_ARG_PARAMS(SEQ) )
+#define FC_DUMP_FORMAT_ARG_NAME(r, unused, base) \
+   "(" BOOST_PP_STRINGIZE(base) ")"
+
+#define FC_DUMP_FORMAT_ARG_NAMES( SEQ )\
+   BOOST_PP_SEQ_FOR_EACH( FC_DUMP_FORMAT_ARG_NAME, v, SEQ )
+
+// TODO FC_FORMAT_ARG_PARAMS(...) may throw exceptions when calling fc::variant(...) inside,
+//      as a quick-fix / workaround, we catch all exceptions here.
+//      However, to log as much info as possible, it's better to catch exceptions when processing each argument
 #define idump( SEQ ) \
-    ilog( FC_FORMAT(SEQ), FC_FORMAT_ARG_PARAMS(SEQ) )
+{ \
+   try { \
+      ilog( FC_FORMAT(SEQ), FC_FORMAT_ARG_PARAMS(SEQ) ); \
+   } catch( ... ) { \
+      ilog ( "[ERROR: Got exception while trying to dump ( ${args} )]",("args",FC_DUMP_FORMAT_ARG_NAMES(SEQ)) ); \
+   } \
+}
 #define wdump( SEQ ) \
-    wlog( FC_FORMAT(SEQ), FC_FORMAT_ARG_PARAMS(SEQ) )
+{ \
+   try { \
+      wlog( FC_FORMAT(SEQ), FC_FORMAT_ARG_PARAMS(SEQ) ); \
+   } catch( ... ) { \
+      wlog ( "[ERROR: Got exception while trying to dump ( ${args} )]",("args",FC_DUMP_FORMAT_ARG_NAMES(SEQ)) ); \
+   } \
+}
 #define edump( SEQ ) \
-    elog( FC_FORMAT(SEQ), FC_FORMAT_ARG_PARAMS(SEQ) )
+{ \
+   try { \
+      elog( FC_FORMAT(SEQ), FC_FORMAT_ARG_PARAMS(SEQ) ); \
+   } catch( ... ) { \
+      elog ( "[ERROR: Got exception while trying to dump ( ${args} )]",("args",FC_DUMP_FORMAT_ARG_NAMES(SEQ)) ); \
+   } \
+}
 
 // this disables all normal logging statements -- not something you'd normally want to do,
 // but it's useful if you're benchmarking something and suspect logging is causing
