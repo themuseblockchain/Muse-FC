@@ -128,9 +128,9 @@ static bool equal( const fc::variant& a, const fc::variant& b )
 {
    auto a_type = a.get_type();
    auto b_type = b.get_type();
-   if( a_type == fc::variant::type_id::int64_type && a.as<int64_t>() > 0 )
+   if( a_type == fc::variant::type_id::int64_type && a.as<int64_t>(1) > 0 )
        a_type = fc::variant::type_id::uint64_type;
-   if( b_type == fc::variant::type_id::int64_type && b.as<int64_t>() > 0 )
+   if( b_type == fc::variant::type_id::int64_type && b.as<int64_t>(1) > 0 )
        b_type = fc::variant::type_id::uint64_type;
    if( a_type != b_type )
    {
@@ -138,17 +138,17 @@ static bool equal( const fc::variant& a, const fc::variant& b )
             && b_type == fc::variant::type_id::string_type )
           || ( a_type == fc::variant::type_id::string_type
                && b_type == fc::variant::type_id::double_type ) )
-         return a.as<double>() == b.as<double>();
+         return a.as<double>(1) == b.as<double>(1);
       return false;
    }
    switch( a_type )
    {
       case fc::variant::type_id::null_type: return true;
-      case fc::variant::type_id::int64_type: return a.as<int64_t>() == b.as<int64_t>();
-      case fc::variant::type_id::uint64_type: return a.as<uint64_t>() == b.as<uint64_t>();
-      case fc::variant::type_id::double_type: return a.as<double>() == b.as<double>();
-      case fc::variant::type_id::bool_type: return a.as<bool>() == b.as<bool>();
-      case fc::variant::type_id::string_type: return a.as<std::string>() == b.as<std::string>();
+      case fc::variant::type_id::int64_type: return a.as<int64_t>(1) == b.as<int64_t>(1);
+      case fc::variant::type_id::uint64_type: return a.as<uint64_t>(1) == b.as<uint64_t>(1);
+      case fc::variant::type_id::double_type: return a.as<double>(1) == b.as<double>(1);
+      case fc::variant::type_id::bool_type: return a.as<bool>(1) == b.as<bool>(1);
+      case fc::variant::type_id::string_type: return a.as<std::string>(1) == b.as<std::string>(1);
       case fc::variant::type_id::array_type:
          if( a.get_array().size() != b.get_array().size() ) return false;
          else
@@ -311,14 +311,66 @@ BOOST_AUTO_TEST_CASE(structured_test)
 
 BOOST_AUTO_TEST_CASE(precision_test)
 {
-   BOOST_CHECK_EQUAL( "\"4294967296\"", fc::json::to_string( fc::variant( 0x100000000LL ) ) );
-   BOOST_CHECK_EQUAL( "\"-4294967296\"", fc::json::to_string( fc::variant( -0x100000000LL ) ) );
+   BOOST_CHECK_EQUAL( "\"4294967296\"", fc::json::to_string( fc::variant( int64_t(0x100000000LL) ) ) );
+   BOOST_CHECK_EQUAL( "\"-4294967296\"", fc::json::to_string( fc::variant( int64_t(-0x100000000LL) ) ) );
    std::string half = fc::json::to_string( fc::variant( 0.5 ) );
    BOOST_CHECK_EQUAL( '"', half.front() );
    BOOST_CHECK_EQUAL( '"', half.back() );
    half = half.substr( 1, half.length() - 2 );
    while( '0' == half.back() ) half.erase( half.length() - 1, 1 );
    BOOST_CHECK_EQUAL( "0.5", half );
+}
+
+BOOST_AUTO_TEST_CASE(recursion_test)
+{
+   std::string ten_levels = "[[[[[[[[[[]]]]]]]]]]";
+   fc::variant nested = fc::json::from_string( ten_levels );
+   BOOST_CHECK_THROW( fc::json::from_string( ten_levels, fc::json::legacy_parser, 9 ), fc::parse_error_exception );
+
+   std::string back = fc::json::to_string( nested );
+   BOOST_CHECK_EQUAL( ten_levels, back );
+   BOOST_CHECK_THROW( fc::json::to_string( nested, fc::json::stringify_large_ints_and_doubles, 9 ), fc::assert_exception );
+}
+
+BOOST_AUTO_TEST_CASE(rethrow_test)
+{
+   fc::variants biggie;
+   for( int i = 0; i < 250; i++ )
+   {
+      fc::variant tmp( std::move(biggie) );
+      biggie.reserve(1);
+      biggie.push_back( std::move(tmp) );
+   }
+
+   auto test_r = [&biggie](){
+      try {
+         FC_THROW_EXCEPTION( fc::unknown_host_exception, "WTF?" );
+      } FC_RETHROW_EXCEPTIONS( warn, "Argh! ${biggie}", ("biggie",biggie) ) };
+   BOOST_CHECK_THROW( test_r(), fc::unknown_host_exception );
+
+   auto test_lr = [&biggie](){
+      try {
+         FC_THROW_EXCEPTION( fc::unknown_host_exception, "WTF?" );
+      } FC_LOG_AND_RETHROW() };
+   BOOST_CHECK_THROW( test_lr(), fc::unknown_host_exception );
+
+   auto test_clr = [&biggie](){
+      try {
+         FC_THROW_EXCEPTION( fc::unknown_host_exception, "WTF?" );
+      } FC_CAPTURE_LOG_AND_RETHROW( (biggie) ) };
+   BOOST_CHECK_THROW( test_clr(), fc::unknown_host_exception );
+
+   auto test_cl = [&biggie](){
+      try {
+         FC_THROW_EXCEPTION( fc::unknown_host_exception, "WTF?" );
+      } FC_CAPTURE_AND_LOG( (biggie) ) };
+   test_cl();
+
+   auto test_cr = [&biggie](){
+      try {
+         FC_THROW_EXCEPTION( fc::unknown_host_exception, "WTF?" );
+      } FC_CAPTURE_AND_RETHROW( (biggie) ) };
+   BOOST_CHECK_THROW( test_cr(), fc::unknown_host_exception );
 }
 
 BOOST_AUTO_TEST_SUITE_END()

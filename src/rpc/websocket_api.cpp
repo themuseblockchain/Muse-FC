@@ -7,8 +7,8 @@ websocket_api_connection::~websocket_api_connection()
 {
 }
 
-websocket_api_connection::websocket_api_connection( fc::http::websocket_connection& c )
-   : _connection(c)
+websocket_api_connection::websocket_api_connection( fc::http::websocket_connection& c, uint32_t max_depth )
+   : api_connection(max_depth),_connection(c)
 {
    _rpc_state.add_method( "call", [this]( const variants& args ) -> variant
    {
@@ -64,7 +64,8 @@ variant websocket_api_connection::send_call(
    idump( (api_id)(method_name)(args) );
    auto request = _rpc_state.start_remote_call(  "call", {api_id, std::move(method_name), std::move(args) } );
    idump( (request) );
-   _connection.send_message( fc::json::to_string(request) );
+   _connection.send_message( fc::json::to_string(fc::variant(request, _max_conversion_depth),
+                                                 fc::json::stringify_large_ints_and_doubles, _max_conversion_depth ) );
    return _rpc_state.wait_for_response( *request.id );
 }
 
@@ -74,7 +75,8 @@ variant websocket_api_connection::send_call(
    variants args )
 {
    auto request = _rpc_state.start_remote_call(  "call", {std::move(api_name), std::move(method_name), std::move(args) } );
-   _connection.send_message( fc::json::to_string(request) );
+   _connection.send_message( fc::json::to_string(fc::variant(request, _max_conversion_depth),
+                                                 fc::json::stringify_large_ints_and_doubles, _max_conversion_depth ) );
    return _rpc_state.wait_for_response( *request.id );
 }
 
@@ -83,7 +85,8 @@ variant websocket_api_connection::send_callback(
    variants args /* = variants() */ )
 {
    auto request = _rpc_state.start_remote_call( "callback", {callback_id, std::move(args) } );
-   _connection.send_message( fc::json::to_string(request) );
+   _connection.send_message( fc::json::to_string(fc::variant(request, _max_conversion_depth),
+                                                 fc::json::stringify_large_ints_and_doubles, _max_conversion_depth ) );
    return _rpc_state.wait_for_response( *request.id );
 }
 
@@ -92,7 +95,8 @@ void websocket_api_connection::send_notice(
    variants args /* = variants() */ )
 {
    fc::rpc::request req{ "2.0", optional<uint64_t>(), "notice", {callback_id, std::move(args)}};
-   _connection.send_message( fc::json::to_string(req) );
+   _connection.send_message( fc::json::to_string(fc::variant(req, _max_conversion_depth),
+                                                 fc::json::stringify_large_ints_and_doubles, _max_conversion_depth ) );
 }
 
 std::string websocket_api_connection::on_message(
@@ -102,12 +106,12 @@ std::string websocket_api_connection::on_message(
    wdump((message));
    try
    {
-      auto var = fc::json::from_string(message);
+      auto var = fc::json::from_string(message, fc::json::legacy_parser, _max_conversion_depth);
       const auto& var_obj = var.get_object();
 
       if( var_obj.contains( "method" ) )
       {
-         auto call = var.as<fc::rpc::request>();
+         auto call = var.as<fc::rpc::request>(_max_conversion_depth);
          exception_ptr optexcept;
          try
          {
@@ -130,7 +134,7 @@ std::string websocket_api_connection::on_message(
 
                if( call.id )
                {
-                  auto reply = fc::json::to_string( response( *call.id, result, "2.0" ) );
+                  auto reply = fc::json::to_string( response( *call.id, result, "2.0" ), fc::json::stringify_large_ints_and_doubles, _max_conversion_depth );
                   if( send_message )
                      _connection.send_message( reply );
                   return reply;
@@ -147,7 +151,8 @@ std::string websocket_api_connection::on_message(
          }
          if( optexcept ) {
 
-               auto reply = fc::json::to_string( response( *call.id,  error_object{ 1, optexcept->to_string(), fc::variant(*optexcept)}, "2.0" ) );
+               auto reply = fc::json::to_string( variant(response( *call.id, error_object{ 1, optexcept->to_string(), fc::variant(*optexcept, _max_conversion_depth)}, "2.0" ), _max_conversion_depth ),
+                                                 fc::json::stringify_large_ints_and_doubles, _max_conversion_depth );
                if( send_message )
                   _connection.send_message( reply );
 
@@ -156,7 +161,7 @@ std::string websocket_api_connection::on_message(
       }
       else
       {
-         auto reply = var.as<fc::rpc::response>();
+         auto reply = var.as<fc::rpc::response>(_max_conversion_depth);
          _rpc_state.handle_reply( reply );
       }
    }

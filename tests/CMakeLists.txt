@@ -40,6 +40,7 @@ add_executable( all_tests all_tests.cpp
                           bloom_test.cpp
                           hmac_test.cpp
                           real128_test.cpp
+                          serialization_test.cpp
                           utf8_test.cpp
                           )
 target_link_libraries( all_tests fc )
