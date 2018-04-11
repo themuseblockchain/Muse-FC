@@ -8,6 +8,7 @@
 #include <cstdint>
 #include <iostream>
 #include <fstream>
+#include <locale>
 #include <sstream>
 
 #include <boost/filesystem/fstream.hpp>
@@ -38,6 +39,8 @@ namespace fc
 #else
 #define FALLTHROUGH
 #endif
+
+static const std::locale& c_locale = std::locale::classic();
 
 #include <fc/io/json_relaxed.hpp>
 
@@ -152,7 +155,7 @@ namespace fc
                   in.get();
                   return token.str();
                default:
-                if( isalnum( c ) || c == '_' || c == '-' || c == '.' || c == ':' || c == '/' )
+                if( isalnum( c, c_locale ) || c == '_' || c == '-' || c == '.' || c == ':' || c == '/' )
                 {
                   token << c;
                   in.get();
@@ -309,7 +312,7 @@ namespace fc
                  ss.put( in.get() );
                  break;
               default:
-                 if( isalnum( c ) )
+                 if( isalnum( c, c_locale ) )
                  {
                     return ss.str() + stringFromToken( in );
                  }

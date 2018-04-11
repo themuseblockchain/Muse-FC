@@ -18,6 +18,7 @@
 #include <string>
 #include <vector>
 #include <limits>
+#include <locale>
 #include <algorithm>
 #include <string.h>
 
@@ -26,8 +27,9 @@
 #include <fc/exception/exception.hpp>
 
 #include <stdexcept>
-#include <vector>
 #include <openssl/bn.h>
+
+static const std::locale& c_locale = std::locale::classic();
 
 /** Errors thrown by the bignum class */
 class bignum_error : public std::runtime_error
@@ -266,7 +268,7 @@ public:
             fNegative = true;
             psz++;
         }
-        if (psz[0] == '0' && tolower(psz[1]) == 'x')
+        if (psz[0] == '0' && tolower(psz[1], c_locale) == 'x')
             psz += 2;
         while (isspace(*psz))
             psz++;
@@ -274,7 +276,7 @@ public:
         // hex string to bignum
         static signed char phexdigit[256] = { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, 0,1,2,3,4,5,6,7,8,9,0,0,0,0,0,0, 0,0xa,0xb,0xc,0xd,0xe,0xf,0,0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, 0,0xa,0xb,0xc,0xd,0xe,0xf,0,0,0,0,0,0,0,0,0 };
         *this = 0;
-        while (isxdigit(*psz))
+        while (isxdigit(*psz, c_locale))
         {
             *this <<= 4;
             int n = phexdigit[(unsigned char)*psz++];
