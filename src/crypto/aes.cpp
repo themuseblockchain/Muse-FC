@@ -100,10 +100,10 @@ struct aes_decoder::impl
 };
 
 aes_decoder::aes_decoder()
-  {
-  static int init = init_openssl();
-  FC_UNUSED(init);
-  }
+{
+   static int init = init_openssl();
+   FC_UNUSED(init);
+}
 
 void aes_decoder::init( const fc::sha256& key, const fc::uint128& init_value )
 {

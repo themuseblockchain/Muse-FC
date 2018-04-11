@@ -98,8 +98,57 @@ else ( MSVC )
     set_property(TARGET secp256k1 PROPERTY IMPORTED_LOCATION ${binary_dir}/.libs/libsecp256k1${CMAKE_STATIC_LIBRARY_SUFFIX})
     set_property(TARGET secp256k1 PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${CMAKE_CURRENT_SOURCE_DIR}/vendor/secp256k1-zkp/include)
     add_dependencies(secp256k1 project_secp256k1)
+    install( FILES ${binary_dir}/.libs/libsecp256k1${CMAKE_STATIC_LIBRARY_SUFFIX} DESTINATION lib/cryptonomex )
 endif ( MSVC )
 # End configure secp256k1-zkp
+
+# Configure editline
+if ( MSVC )
+#    # autoconf won't work here, hard code the defines
+#    set( EDITLINE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/vendor/editline" )
+#
+#    file( GLOB EDITLINE_SOURCES "${EDITLINE_DIR}/src/editline.c" )
+#    add_library( editline ${EDITLINE_SOURCES} )
+#
+#    target_include_directories( editline PRIVATE "${EDITLINE_DIR}" PUBLIC "${EDITLINE_DIR}/include" )
+#
+#    set_target_properties( editline PROPERTIES COMPILE_DEFINITIONS LINKER_LANGUAGE C )
+else ( MSVC )
+    include(ExternalProject)
+    if ( MINGW )
+    ExternalProject_Add( project_editline
+     PREFIX ${CMAKE_CURRENT_BINARY_DIR}/vendor/editline
+     SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/vendor/editline
+     CONFIGURE_COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/vendor/editline/configure --prefix=${CMAKE_CURRENT_BINARY_DIR}/vendor/editline --host=x86_64-w64-mingw32
+     BUILD_COMMAND make
+     INSTALL_COMMAND true
+     BUILD_BYPRODUCTS ${CMAKE_CURRENT_BINARY_DIR}/vendor/editline/src/project_editline-build/.libs/libeditline.a
+    )
+    else ( MINGW )
+    ExternalProject_Add( project_editline
+     PREFIX ${CMAKE_CURRENT_BINARY_DIR}/vendor/editline
+     SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/vendor/editline
+     CONFIGURE_COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/vendor/editline/configure --prefix=${CMAKE_CURRENT_BINARY_DIR}/vendor/editline
+     BUILD_COMMAND make
+     INSTALL_COMMAND true
+     BUILD_BYPRODUCTS ${CMAKE_CURRENT_BINARY_DIR}/vendor/editline/src/project_editline-build/.libs/libeditline.a
+    )
+    endif ( MINGW )
+    ExternalProject_Add_Step(project_editline autogen
+     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/vendor/editline
+     COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/vendor/editline/autogen.sh
+     DEPENDERS configure
+    )
+
+    ExternalProject_Get_Property(project_editline binary_dir)
+
+    add_library(editline STATIC IMPORTED)
+    set_property(TARGET editline PROPERTY IMPORTED_LOCATION ${binary_dir}/src/.libs/libeditline${CMAKE_STATIC_LIBRARY_SUFFIX})
+    set_property(TARGET editline PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${CMAKE_CURRENT_SOURCE_DIR}/vendor/editline/include)
+    add_dependencies(editline project_editline)
+    install( FILES ${binary_dir}/src/.libs/libeditline${CMAKE_STATIC_LIBRARY_SUFFIX} DESTINATION lib/cryptonomex )
+endif ( MSVC )
+# End configure editline
 
 IF( WIN32 )
   MESSAGE(STATUS "Configuring fc to build on Win32")
@@ -207,7 +256,6 @@ set( fc_sources
      src/crypto/aes.cpp
      src/crypto/crc.cpp
      src/crypto/city.cpp
-     src/crypto/base32.cpp
      src/crypto/base36.cpp
      src/crypto/base58.cpp
      src/crypto/base64.cpp
@@ -221,7 +269,6 @@ set( fc_sources
      src/crypto/dh.cpp
      src/crypto/blowfish.cpp
      src/crypto/elliptic_common.cpp
-     src/crypto/equihash.cpp
      src/crypto/restartable_sha256.cpp
      ${ECC_REST}
      src/crypto/elliptic_${ECC_IMPL}.cpp
@@ -231,16 +278,12 @@ set( fc_sources
      src/network/http/http_connection.cpp
      src/network/http/http_server.cpp
      src/network/http/websocket.cpp
-     src/network/ntp.cpp
      src/network/ip.cpp
      src/network/rate_limiting.cpp
      src/network/resolve.cpp
      src/network/url.cpp
-     src/network/gntp.cpp
      src/compress/smaz.cpp
      src/compress/zlib.cpp
-     vendor/cyoencode-1.0.2/src/CyoDecode.c
-     vendor/cyoencode-1.0.2/src/CyoEncode.c
      )
 
 file( GLOB_RECURSE fc_headers ${CMAKE_CURRENT_SOURCE_DIR} *.hpp *.h )
@@ -253,32 +296,22 @@ configure_file("${CMAKE_CURRENT_SOURCE_DIR}/src/git_revision.cpp.in" "${CMAKE_CU
 list(APPEND sources "${CMAKE_CURRENT_BINARY_DIR}/git_revision.cpp")
 list(APPEND sources ${fc_headers})
 
-add_subdirectory( vendor/websocketpp )
-add_subdirectory( vendor/equihash )
+add_subdirectory( vendor/websocketpp EXCLUDE_FROM_ALL )
 
 setup_library( fc SOURCES ${sources} LIBRARY_TYPE STATIC DONT_INSTALL_LIBRARY )
 
-# begin readline stuff
-find_package(Curses)
-find_package(Readline)
-
-file(GLOB HEADERS "include/bts/cli/*.hpp")
-
-if (READLINE_FOUND)
-  target_compile_definitions (fc PRIVATE HAVE_READLINE)
-  set(readline_libraries ${Readline_LIBRARY})
-  if (CURSES_FOUND)
-    list(APPEND readline_libraries ${CURSES_LIBRARY})
-  endif()
-  set(readline_includes ${Readline_INCLUDE_DIR})
-endif()
+# begin editline stuff
+if(NOT MSVC)
+  target_compile_definitions (fc PRIVATE HAVE_EDITLINE)
+  set(editline_libraries editline)
+endif(NOT MSVC)
 if(WIN32)
   target_compile_definitions( fc PRIVATE _CRT_NONSTDC_NO_DEPRECATE )
 endif(WIN32)
-# end readline stuff
+# end editline stuff
 
 if( NOT CPP_STANDARD )
-  set( CPP_STANDARD, "-std=c++11" )
+  set( CPP_STANDARD "-std=c++11" )
 endif()
 
 IF(WIN32)
@@ -308,6 +341,12 @@ ELSE()
       target_compile_options(fc PUBLIC ${CPP_STANDARD} -Wall -fnon-call-exceptions)
     endif()
     SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CPP_STANDARD} -Wall -fnon-call-exceptions")
+
+    if( "${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang" )
+        if( CMAKE_CXX_COMPILER_VERSION VERSION_EQUAL 4.0.0 OR CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 4.0.0 )
+            set( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-invalid-partial-specialization" )
+        endif()
+    endif()
   ENDIF()
 ENDIF()
 
@@ -363,20 +402,17 @@ target_include_directories(fc
     ${OPENSSL_INCLUDE_DIR}
     "vendor/diff-match-patch-cpp-stl"
     ${CMAKE_CURRENT_SOURCE_DIR}/vendor/websocketpp
-    "${readline_includes}"
 
   PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/vendor/boost_1.51/include
-    ${CMAKE_CURRENT_SOURCE_DIR}/vendor/cyoencode-1.0.2/src
     ${CMAKE_CURRENT_SOURCE_DIR}/vendor/secp256k1-zkp
-    ${CMAKE_CURRENT_SOURCE_DIR}/vendor/equihash
   )
 
 #target_link_libraries( fc PUBLIC ${Boost_LIBRARIES} ${OPENSSL_LIBRARIES} ${ZLIB_LIBRARIES} ${BZIP2_LIBRARIES} ${PLATFORM_SPECIFIC_LIBS} ${RPCRT4} ${CMAKE_DL_LIBS} ${rt_library} ${ECC_LIB} )
 IF(NOT WIN32)
   set(LINK_USR_LOCAL_LIB -L/usr/local/lib)
 ENDIF()
-target_link_libraries( fc PUBLIC ${LINK_USR_LOCAL_LIB} equihash ${Boost_LIBRARIES} ${OPENSSL_LIBRARIES} ${ZLIB_LIBRARIES} ${BZIP2_LIBRARIES} ${PLATFORM_SPECIFIC_LIBS} ${RPCRT4} ${CMAKE_DL_LIBS} ${rt_library} ${readline_libraries} ${ECC_LIB} )
+target_link_libraries( fc PUBLIC ${LINK_USR_LOCAL_LIB} ${Boost_LIBRARIES} ${OPENSSL_LIBRARIES} ${ZLIB_LIBRARIES} ${BZIP2_LIBRARIES} ${PLATFORM_SPECIFIC_LIBS} ${RPCRT4} ${CMAKE_DL_LIBS} ${rt_library} ${editline_libraries} ${ECC_LIB} )
 
 if(MSVC)
   set_source_files_properties( src/network/http/websocket.cpp PROPERTIES COMPILE_FLAGS "/bigobj" )
@@ -392,7 +428,6 @@ ENDIF(MSVC)
 ENDIF()
 
 include_directories( vendor/websocketpp )
-include_directories( vendor/equihash )
 
 add_subdirectory(tests)
 

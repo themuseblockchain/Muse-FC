@@ -1,6 +1,8 @@
 fc
 ==
 
+[![](https://travis-ci.org/themuseblockchain/Muse-FC.svg?branch=master)](https://travis-ci.org/themuseblockchain/Muse-FC) 
+
 FC stands for fast-compiling c++ library and provides a set of utility libraries useful
 for the development of asynchronous libraries.  Some of the highlights include:
 

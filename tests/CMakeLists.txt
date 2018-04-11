@@ -33,7 +33,6 @@ add_executable( all_tests all_tests.cpp
                           crypto/sha_tests.cpp
                           io/json_tests.cpp
                           io/stream_tests.cpp
-                          network/ntp_test.cpp
                           network/http/websocket_test.cpp
                           thread/task_cancel.cpp
                           thread/thread_tests.cpp
@@ -41,6 +40,8 @@ add_executable( all_tests all_tests.cpp
                           bloom_test.cpp
                           hmac_test.cpp
                           real128_test.cpp
+                          serialization_test.cpp
                           utf8_test.cpp
+                          variant_test.cpp
                           )
 target_link_libraries( all_tests fc )
