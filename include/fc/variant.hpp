@@ -110,9 +110,9 @@ namespace fc
    void from_variant(const variant& var, flat_map<K, T, A...>& vo, uint32_t max_depth );
 
    template<typename T>
-   void to_variant( const std::map<string,T>& var,  variant& vo );
+   void to_variant( const std::map<string,T>& var, variant& vo, uint32_t max_depth );
    template<typename T>
-   void from_variant( const variant& var,  std::map<string,T>& vo );
+   void from_variant( const variant& var, std::map<string,T>& vo, uint32_t max_depth );
 
    template<typename K, typename T>
    void to_variant( const std::map<K,T>& var,   variant& vo, uint32_t max_depth );

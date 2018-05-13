@@ -69,11 +69,13 @@ namespace fc
       variant_object( string key, variant val );
 
       template<typename T>
-      variant_object( const map<string,T>& values )
+      variant_object( const map<string,T>& values, uint32_t max_depth )
       :_key_value( new std::vector<entry>() ) {
+         _FC_ASSERT( max_depth > 0, "Recursion depth exceeded!" );
+         max_depth--;
          _key_value->reserve( values.size() );
          for( const auto& item : values ) {
-            _key_value->emplace_back( entry( item.first, fc::variant(item.second) ) );
+            _key_value->emplace_back( entry( item.first, fc::variant( item.second, max_depth ) ) );
          }
       }
        
@@ -279,18 +281,20 @@ namespace fc
    void from_variant( const variant& var, mutable_variant_object& vo, uint32_t max_depth = 1 );
 
    template<typename T>
-   void to_variant( const std::map<string, T>& var,  variant& vo )
+   void to_variant( const std::map<string, T>& var, variant& vo, uint32_t max_depth )
    {
-       vo = variant_object( var );
+       vo = variant_object( var, max_depth );
    }
 
    template<typename T>
-   void from_variant( const variant& var,  std::map<string, T>& vo )
+   void from_variant( const variant& var, std::map<string, T>& vo, uint32_t max_depth )
    {
+      _FC_ASSERT( max_depth > 0, "Recursion depth exceeded!" );
+      max_depth--;
       const auto& obj = var.get_object();
       vo.clear();
       for( auto itr = obj.begin(); itr != obj.end(); ++itr )
-         vo[itr->key()] = itr->value().as<T>();
+         vo[itr->key()] = itr->value().as<T>( max_depth );
    }
 
 } // namespace fc
