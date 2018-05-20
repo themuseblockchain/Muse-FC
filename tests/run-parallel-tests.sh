@@ -14,5 +14,4 @@ fi
 	*) pre="$t"; ;;
 	esac
     done \
-  | parallel echo Running {}\; "$1" -t {}
-
+  | parallel -v --group --eta -- "$1" -t {}

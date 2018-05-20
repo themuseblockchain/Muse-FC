@@ -117,13 +117,13 @@ namespace fc {
       return result.str();
     }
     uint32_t years_ago = days_ago / 365;
-    result << years_ago << " year" << (months_ago > 1 ? "s" : "");
+    result << years_ago << " year" << (years_ago > 1 ? "s" : "");
     if (months_ago < 12 * 5)
     {
       uint32_t leftover_days = days_ago - (years_ago * 365);
       uint32_t leftover_months = (leftover_days + 15) / 30;
       if (leftover_months)
-        result << leftover_months <<  " month" << (months_ago > 1 ? "s" : "");
+        result << leftover_months <<  " month" << (leftover_months > 1 ? "s" : "");
     }
     result << ago;
     return result.str();
