@@ -24,7 +24,6 @@ script:
  - set -o pipefail
  - tests/run-parallel-tests.sh tests/all_tests
  - tests/api 2>&1 | cat
- - tests/bip_lock 2>&1 | cat
  - tests/ecc_test README.md 2>&1 | cat
  - tests/log_test 2>&1 | cat
  - tests/sha_test 2>&1 | cat

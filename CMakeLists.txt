@@ -237,7 +237,6 @@ set( fc_sources
      src/interprocess/signals.cpp
      src/interprocess/file_mapping.cpp
      src/interprocess/mmap_struct.cpp
-     src/interprocess/file_mutex.cpp
      src/rpc/cli.cpp
      src/rpc/http_api.cpp
      src/rpc/json_connection.cpp
