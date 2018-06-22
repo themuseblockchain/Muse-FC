@@ -22,6 +22,7 @@ script:
  - cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_C_FLAGS=--coverage -DCMAKE_CXX_FLAGS=--coverage -DBoost_USE_STATIC_LIBS=OFF  -DCMAKE_CXX_OUTPUT_EXTENSION_REPLACE=ON .
  - 'which build-wrapper-linux-x86-64 && build-wrapper-linux-x86-64 --out-dir bw-output make -j 2 || make -j 2'
  - set -o pipefail
+ - tests/all_tests --list_content
  - tests/run-parallel-tests.sh tests/all_tests
  - tests/api 2>&1 | cat
  - tests/ecc_test README.md 2>&1 | cat
