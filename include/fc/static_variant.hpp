@@ -343,7 +343,7 @@ struct visitor {
     typedef Result result_type;
 };
 
-   struct from_static_variant
+   struct from_static_variant 
    {
       variant& var;
       const uint32_t _max_depth;
@@ -387,5 +387,46 @@ struct visitor {
       s.visit( to_static_variant(ar[1], max_depth - 1) );
    }
 
-  template<typename... T> struct get_typename { static const char* name()   { return typeid(static_variant<T...>).name();   } };
+   template< typename... T > struct get_comma_separated_typenames;
+
+   template<>
+   struct get_comma_separated_typenames<>
+   {
+      static const char* names() { return ""; }
+   };
+
+   template< typename T >
+   struct get_comma_separated_typenames<T>
+   {
+      static const char* names()
+      {
+         static const std::string n = get_typename<T>::name();
+         return n.c_str();
+      }
+   };
+
+   template< typename T, typename... Ts >
+   struct get_comma_separated_typenames<T, Ts...>
+   {
+      static const char* names()
+      {
+         static const std::string n =
+            std::string( get_typename<T>::name() )+","+
+            std::string( get_comma_separated_typenames< Ts... >::names() );
+         return n.c_str();
+      }
+   };
+
+   template< typename... T >
+   struct get_typename< static_variant< T... > >
+   {
+      static const char* name()
+      {
+         static const std::string n = std::string( "fc::static_variant<" )
+            + get_comma_separated_typenames<T...>::names()
+            + ">";
+         return n.c_str();
+      }
+   };
+
 } // namespace fc

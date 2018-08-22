@@ -1,5 +1,7 @@
 language: c++
 
+cache: ccache
+
 git:
   depth: 1
 
@@ -10,19 +12,25 @@ sudo: true
 install:
  - echo "deb http://de.archive.ubuntu.com/ubuntu xenial main restricted universe multiverse" | sudo tee -a /etc/apt/sources.list
  - sudo apt-get update
- - sudo apt-get install --allow-unauthenticated g++ libboost-all-dev cmake libreadline-dev libssl-dev autoconf parallel
+ - sudo apt-get install --allow-unauthenticated g++ libboost-all-dev cmake libreadline-dev libssl-dev autoconf parallel ccache
 
 addons:
   sonarcloud:
-    organization: "djxeo0smpujky4mpro50l67fsv74ijvt"
+    organization: "soundac"
     token:
-      secure: "aJ1aXr7JCsd7EwN0GQDJibKK24SW27AYrc5RDS7+MIJ5CCSX8e/cZ8v0Se6JmaXqt4t/VKAuVtv9JW2HZMMv2c2ACDpGWysKftS0Nb3JJCDHth+NZKGWhl9rFGQ90BigL3qQu2c9haJ77uCXko2BudcSqd9ejfSpQLA0tLrT7QGr/iS+pdmEQOVAsNWF4157hYSSxwz1WIHX2uxci2y9zCiE0ckmkpxwmI6qFiIExC6Y7LAATBeE1fT4KocPYZSAbeYx6D0C1llaWnw0ICf1jVF9ZEG79GDlnM9Uqj9rAAWIhgJFie15gYFvsfsv/W1R7u4xh0204/86HEfHCaV5JLUKGuxWRvtHhMmOC4LRf4siscT52R28AUq+QIak4dgL1H4QL6AvhpCK4SeeZj644XA8VJUp7skjpk2cNJ6RZA4TdOY/qSAGSSf/wHizftRdjb7oPn0nHgadr3biDI2LrhGI4N4lAZdxrBjUODkzENsgR4vQ4RtFw62gpxvUpqMwFkNIEYxWo9bVNXmqYzBKJqqL/lHsm7QZHJgpOcn/jFow+R9n73LjKGGDbJcCZ7TUbWWFzhaGiw7aDyYFuZgGVkEuT81KQdxaLjG6X5hMrLGaB8No9T8Vj+4121rcCxX3r8MK0uvVzcaKt9Md51zCJ6GoF4FcQbI8TkOj2O7i4ZM="
+      secure: "Cr3q74yHUsS+kcAsAtB+yB2AyDptL8Rpmw+Q8HR+1MIEnIqyp5BLGNzOZnlucNQwUSUeVF81MpVTRgJT7zzVRa3XbVIngT25a3mm7zgULtG+RJG2rIFoeFWmgmj8kf+1HAis2lsJNUDylhrdumRQS3fMXBA/5Hz4Sbrve/TUg40RutAOsaXipwxqsanxnt/vwFndbb8Y/wprmgHrj45IMG+5bdJ6+DjaahJ9c1QDtWhtn9kPVYCJlO+XRzbHoVCOJOw8+r3FW8I5bDKMxbwGnAcAt4h0ZaxWtUSvt/iECpZqmOgirmVKQ9FJFzcCWBw+PY5Z+bnjwLjDCm2HqoNDk08cWLTn4Na/ZFO5AbBjS9L2VYC5PLpboTJnAygKcEcFDxsNDpnJK5mbcyV/Yzcmwwu5bIEfaDJS4aE1hVCqKhWP7Ecg2QxLtDSG4NHmyrG0CCUorhSemgUK5XvZ9QsSMqnBYl5ee9y/mc6swjHTK3DshJOHzWHO0QpoHg+fv5At7CXWvF/0F7/l24RvCweSni6/eT40MsM6tQCAEJRe6RFBeZAXs1RW+uh+A/CVeTKjNOtJNsV8AmJyu3bR3C7Kug3t+jbZ7cqms+wxyeIt01nYkgJM84kAnnJI51x+c3YtdJ4zK7dic7XWfy0jWdGVb9/JydPmhxI2PEKpPqnFmyk="
+
+env:
+  global:
+    - CCACHE_COMPRESS=exists_means_true
+    - CCACHE_MAXSIZE=1Gi
+    - CCACHE_SLOPPINESS=include_file_ctime,include_file_mtime,time_macros
 
 script:
  - cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_C_FLAGS=--coverage -DCMAKE_CXX_FLAGS=--coverage -DBoost_USE_STATIC_LIBS=OFF  -DCMAKE_CXX_OUTPUT_EXTENSION_REPLACE=ON .
  - 'which build-wrapper-linux-x86-64 && build-wrapper-linux-x86-64 --out-dir bw-output make -j 2 || make -j 2'
  - set -o pipefail
- - tests/run-parallel-tests.sh tests/all_tests
+ - tests/all_tests 2>&1 | cat
  - tests/api 2>&1 | cat
  - tests/ecc_test README.md 2>&1 | cat
  - tests/log_test 2>&1 | cat

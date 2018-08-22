@@ -42,7 +42,7 @@ namespace fc {
 
 
 
-                 _rotation_task = async( [this]() { rotate_files( true ); }, "rotate_files(1)" );
+                 _rotation_task = fc::async( [this]() { rotate_files( true ); }, "rotate_files(1)" );
              }
          }
 
