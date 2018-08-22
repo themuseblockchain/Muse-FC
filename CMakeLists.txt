@@ -281,7 +281,6 @@ set( fc_sources
      src/network/rate_limiting.cpp
      src/network/resolve.cpp
      src/network/url.cpp
-     src/compress/smaz.cpp
      src/compress/zlib.cpp
      )
 
@@ -367,15 +366,6 @@ else()
   set( ZLIB_LIBRARIES "" )
 endif( ZLIB_FOUND )
 
-find_package( BZip2 )
-if( BZIP2_FOUND )
-   MESSAGE( STATUS "bzip2 found" )
-   add_definitions( -DHAS_BZIP2 )
-else()
-   MESSAGE( STATUS "bzip2 not found" )
-   set( BZIP2_LIBRARIES "" )
-endif( BZIP2_FOUND )
-
 # This will become unnecessary once we update to websocketpp which fixes upstream issue #395
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DWEBSOCKETPP_STRICT_MASKING")
 
@@ -406,11 +396,10 @@ target_include_directories(fc
     ${CMAKE_CURRENT_SOURCE_DIR}/vendor/secp256k1-zkp
   )
 
-#target_link_libraries( fc PUBLIC ${Boost_LIBRARIES} ${OPENSSL_LIBRARIES} ${ZLIB_LIBRARIES} ${BZIP2_LIBRARIES} ${PLATFORM_SPECIFIC_LIBS} ${RPCRT4} ${CMAKE_DL_LIBS} ${rt_library} ${ECC_LIB} )
 IF(NOT WIN32)
   set(LINK_USR_LOCAL_LIB -L/usr/local/lib)
 ENDIF()
-target_link_libraries( fc PUBLIC ${LINK_USR_LOCAL_LIB} ${Boost_LIBRARIES} ${OPENSSL_LIBRARIES} ${ZLIB_LIBRARIES} ${BZIP2_LIBRARIES} ${PLATFORM_SPECIFIC_LIBS} ${RPCRT4} ${CMAKE_DL_LIBS} ${rt_library} ${editline_libraries} ${ECC_LIB} )
+target_link_libraries( fc PUBLIC ${LINK_USR_LOCAL_LIB} ${Boost_LIBRARIES} ${OPENSSL_LIBRARIES} ${ZLIB_LIBRARIES} ${PLATFORM_SPECIFIC_LIBS} ${RPCRT4} ${CMAKE_DL_LIBS} ${rt_library} ${editline_libraries} ${ECC_LIB} )
 
 if(MSVC)
   set_source_files_properties( src/network/http/websocket.cpp PROPERTIES COMPILE_FLAGS "/bigobj" )
@@ -522,10 +511,12 @@ ENDIF()
        IF("${OPENSSL_ROOT_DIR}" STREQUAL "")
           get_filename_component(OPENSSL_ROOT_DIR "${OPENSSL_INCLUDE_DIR}/.." REALPATH)
        ENDIF()
-       SET(OPENSSL_CONF_SOURCE "${OPENSSL_ROOT_DIR}/ssl/openssl.cnf")
-       IF(MINGW)
-          SET(OPENSSL_CONF_SOURCE "${OPENSSL_ROOT_DIR}/openssl.cnf")
-       ENDIF(MINGW)
+       IF("${OPENSSL_CONF_SOURCE}" STREQUAL "")
+          SET(OPENSSL_CONF_SOURCE "${OPENSSL_ROOT_DIR}/ssl/openssl.cnf")
+          IF(MINGW)
+            SET(OPENSSL_CONF_SOURCE "${OPENSSL_ROOT_DIR}/openssl.cnf")
+          ENDIF(MINGW)
+       ENDIF()
        SET(POST_BUILD_STEP_COMMANDS ${POST_BUILD_STEP_COMMANDS}
            COMMAND ${CMAKE_COMMAND} -E copy_if_different "${OPENSSL_CONF_SOURCE}" "${OPENSSL_CONF_TARGET}/openssl.cnf")
     ENDIF(WIN32)
